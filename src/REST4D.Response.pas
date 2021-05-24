@@ -3,22 +3,23 @@ unit REST4D.Response;
 interface
 
 uses
-  REST4D.interfaces;
+  REST4D.interfaces,
+  REST.Client;
 
 type
   TResponse<T: IInterface> = Class(TinterfacedObject, IResponse<T>)
   private
     [weak]
-    FParent     : T;
-    FContentType: String;
+    FParent  : T;
+    FResponse: TRESTResponse;
 
   public
     function ContentType(const AValue: String): IResponse<T>; overload;
     function ContentType: String; overload;
     function &End: T;
 
-    class function New(AParent: T): IResponse<T>;
-    constructor Create(AParent: T);
+    class function New(AParent: T; Response: TRESTResponse): IResponse<T>;
+    constructor Create(AParent: T; Response: TRESTResponse);
     destructor Destroy; override;
   End;
 
@@ -28,18 +29,19 @@ implementation
 
 function TResponse<T>.ContentType(const AValue: String): IResponse<T>;
 begin
-  Result       := Self;
-  FContentType := AValue;
+  Result                := Self;
+  FResponse.ContentType := AValue;
 end;
 
 function TResponse<T>.ContentType: String;
 begin
-  Result := FContentType;
+  Result := FResponse.ContentType;
 end;
 
-constructor TResponse<T>.Create(AParent: T);
+constructor TResponse<T>.Create(AParent: T; Response: TRESTResponse);
 begin
-  FParent := AParent;
+  FParent   := AParent;
+  FResponse := Response;
 end;
 
 destructor TResponse<T>.Destroy;
@@ -53,9 +55,9 @@ begin
   Result := FParent;
 end;
 
-class function TResponse<T>.New(AParent: T): IResponse<T>;
+class function TResponse<T>.New(AParent: T; Response: TRESTResponse): IResponse<T>;
 begin
-  Result := TResponse<T>.Create(AParent);
+  Result := TResponse<T>.Create(AParent, Response);
 end;
 
 end.

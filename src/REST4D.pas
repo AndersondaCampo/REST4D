@@ -133,6 +133,10 @@ begin
   FRESTDatasetAdapter := TRESTResponseDataSetAdapter.Create(nil);
 
   JoinObjects;
+
+  FIClient   := TClient<IREST4D>.New(Self, FRESTClient);
+  FIResponse := TResponse<IREST4D>.New(Self, FRESTResponse);
+  FIRequest  := TRequest<IREST4D>.New(Self, FRESTRequest);
 end;
 
 function TREST4D.DatasetAdapter(var AValue: TDataSet): IREST4D;
@@ -347,25 +351,16 @@ end;
 
 function TREST4D.RESTClient: IClient<IREST4D>;
 begin
-  if not Assigned(FIClient) then
-    FIClient  := TClient<IREST4D>.New(Self);
-
   Result := FIClient;
 end;
 
 function TREST4D.RESTRequest: IRequest<IREST4D>;
 begin
-  if not Assigned(FIRequest) then
-    FIRequest := TRequest<IREST4D>.New(Self);
-
   Result := FIRequest;
 end;
 
 function TREST4D.RESTResponse: IResponse<IREST4D>;
 begin
-  if not Assigned(FIResponse) then
-    FIResponse:= TResponse<IREST4D>.New(Self);
-
   Result := FIResponse;
 end;
 

@@ -3,20 +3,15 @@ unit REST4D.Client;
 interface
 
 uses
-  REST4D.interfaces;
+  REST4D.interfaces,
+  REST.Client;
 
 type
   TClient<T: IInterface> = Class(TInterfacedObject, IClient<T>)
   private
     [weak]
-    FParent             : T;
-    FUserAgent          : String;
-    FAccept             : String;
-    FAcceptCharset      : String;
-    FHandleRedirects    : Boolean;
-    FRaiseExceptionOn500: Boolean;
-    FContentType        : String;
-
+    FParent: T;
+    FClient: TRESTClient;
   public
     function UserAgent(const AValue: String): IClient<T>; overload;
     function UserAgent: String; overload;
@@ -32,8 +27,8 @@ type
     function ContentType: String; overload;
     function &End: T;
 
-    class function New(AParent: T): IClient<T>;
-    constructor Create(AParent: T);
+    class function New(AParent: T; Client: TRESTClient): IClient<T>;
+    constructor Create(AParent: T; Client: TRESTClient);
     destructor Destroy; override;
   End;
 
@@ -43,40 +38,41 @@ implementation
 
 function TClient<T>.Accept: String;
 begin
-  Result := FAccept;
+  Result := FClient.Accept;
 end;
 
 function TClient<T>.Accept(const AValue: String): IClient<T>;
 begin
-  Result  := Self;
-  FAccept := AValue;
+  Result         := Self;
+  FClient.Accept := AValue;
 end;
 
 function TClient<T>.AcceptCharset: String;
 begin
-  Result := FAcceptCharset;
+  Result := FClient.AcceptCharset;
 end;
 
 function TClient<T>.AcceptCharset(const AValue: String): IClient<T>;
 begin
-  Result         := Self;
-  FAcceptCharset := AValue;
+  Result                := Self;
+  FClient.AcceptCharset := AValue;
 end;
 
 function TClient<T>.ContentType: String;
 begin
-  Result := FContentType;
+  Result := FClient.ContentType;
 end;
 
 function TClient<T>.ContentType(const AValue: String): IClient<T>;
 begin
-  Result       := Self;
-  FContentType := AValue;
+  Result              := Self;
+  FClient.ContentType := AValue;
 end;
 
-constructor TClient<T>.Create(AParent: T);
+constructor TClient<T>.Create(AParent: T; Client: TRESTClient);
 begin
   FParent := AParent;
+  FClient := Client;
 end;
 
 destructor TClient<T>.Destroy;
@@ -92,40 +88,40 @@ end;
 
 function TClient<T>.HandleRedirects: Boolean;
 begin
-  Result := FHandleRedirects;
+  Result := FClient.HandleRedirects;
 end;
 
 function TClient<T>.HandleRedirects(const AValue: Boolean): IClient<T>;
 begin
-  Result           := Self;
-  FHandleRedirects := AValue;
+  Result                  := Self;
+  FClient.HandleRedirects := AValue;
 end;
 
-class function TClient<T>.New(AParent: T): IClient<T>;
+class function TClient<T>.New(AParent: T; Client: TRESTClient): IClient<T>;
 begin
-  Result := TClient<T>.Create(AParent);
+  Result := TClient<T>.Create(AParent, Client);
 end;
 
 function TClient<T>.RaiseExceptionOn500: Boolean;
 begin
-  Result := FRaiseExceptionOn500;
+  Result := FClient.RaiseExceptionOn500;
 end;
 
 function TClient<T>.RaiseExceptionOn500(AValue: Boolean): IClient<T>;
 begin
-  Result               := Self;
-  FRaiseExceptionOn500 := AValue
+  Result                      := Self;
+  FClient.RaiseExceptionOn500 := AValue
 end;
 
 function TClient<T>.UserAgent(const AValue: String): IClient<T>;
 begin
-  Result     := Self;
-  FUserAgent := AValue;
+  Result            := Self;
+  FClient.UserAgent := AValue;
 end;
 
 function TClient<T>.UserAgent: String;
 begin
-  Result := FUserAgent;
+  Result := FClient.UserAgent;
 end;
 
 end.

@@ -3,15 +3,15 @@ unit REST4D.Request;
 interface
 
 uses
-  REST4D.interfaces;
+  REST4D.interfaces,
+  REST.Client;
 
 type
   TRequest<T: IInterface> = Class(TInterfacedObject, IRequest<T>)
   private
     [weak]
-    FParent            : T;
-    FSynchronizedEvents: Boolean;
-    FAcceptEncoding    : String;
+    FParent : T;
+    FRequest: TRESTRequest;
   public
     function SynchronizedEvents(const AValue: Boolean): IRequest<T>; overload;
     function SynchronizedEvents: Boolean; overload;
@@ -19,8 +19,8 @@ type
     function AcceptEncoding: String; overload;
     function &End: T;
 
-    class function New(AParent: T): IRequest<T>;
-    constructor Create(AParent: T);
+    class function New(AParent: T; Request: TRESTRequest): IRequest<T>;
+    constructor Create(AParent: T; Request: TRESTRequest);
     destructor Destroy; override;
   End;
 
@@ -30,18 +30,19 @@ implementation
 
 function TRequest<T>.AcceptEncoding: String;
 begin
-  Result := FAcceptEncoding;
+  Result := FRequest.AcceptEncoding;
 end;
 
 function TRequest<T>.AcceptEncoding(const AValue: String): IRequest<T>;
 begin
-  Result          := Self;
-  FAcceptEncoding := AValue;
+  Result                  := Self;
+  FRequest.AcceptEncoding := AValue;
 end;
 
-constructor TRequest<T>.Create(AParent: T);
+constructor TRequest<T>.Create(AParent: T; Request: TRESTRequest);
 begin
-  FParent := AParent;
+  FParent  := AParent;
+  FRequest := Request;
 end;
 
 destructor TRequest<T>.Destroy;
@@ -55,20 +56,20 @@ begin
   Result := FParent;
 end;
 
-class function TRequest<T>.New(AParent: T): IRequest<T>;
+class function TRequest<T>.New(AParent: T; Request: TRESTRequest): IRequest<T>;
 begin
-  Result := TRequest<T>.Create(AParent);
+  Result := TRequest<T>.Create(AParent, Request);
 end;
 
 function TRequest<T>.SynchronizedEvents(const AValue: Boolean): IRequest<T>;
 begin
-  Result              := Self;
-  FSynchronizedEvents := AValue;
+  Result                      := Self;
+  FRequest.SynchronizedEvents := AValue;
 end;
 
 function TRequest<T>.SynchronizedEvents: Boolean;
 begin
-  Result := FSynchronizedEvents
+  Result := FRequest.SynchronizedEvents;
 end;
 
 end.
