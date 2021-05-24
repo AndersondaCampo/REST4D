@@ -1,0 +1,67 @@
+object FrmPrincipal: TFrmPrincipal
+  Left = 0
+  Top = 0
+  BorderStyle = bsSizeToolWin
+  Caption = 'FrmPrincipal'
+  ClientHeight = 261
+  ClientWidth = 784
+  Color = clBtnFace
+  Constraints.MinHeight = 300
+  Constraints.MinWidth = 800
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poMainFormCenter
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 784
+    Height = 25
+    Align = alTop
+    BevelOuter = bvNone
+    ParentColor = True
+    TabOrder = 0
+    object Button1: TButton
+      Left = 673
+      Top = 0
+      Width = 111
+      Height = 25
+      Align = alRight
+      Caption = 'Executar'
+      TabOrder = 0
+      OnClick = Button1Click
+    end
+    object edtLink: TEdit
+      AlignWithMargins = True
+      Left = 3
+      Top = 3
+      Width = 667
+      Height = 19
+      Cursor = crIBeam
+      Align = alClient
+      BevelInner = bvNone
+      BevelOuter = bvNone
+      BorderStyle = bsNone
+      Color = clInfoBk
+      TabOrder = 1
+      Text = 'viacep.com.br/ws/01001000/json/'
+      OnKeyPress = edtLinkKeyPress
+    end
+  end
+  object Memo1: TMemo
+    Left = 0
+    Top = 25
+    Width = 784
+    Height = 236
+    Align = alClient
+    BorderStyle = bsNone
+    Color = 15790320
+    ScrollBars = ssBoth
+    TabOrder = 1
+  end
+end
