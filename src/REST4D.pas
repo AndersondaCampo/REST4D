@@ -46,6 +46,7 @@ type
     procedure SetConfiguration;
     procedure SetResult;
     procedure ExecProcs;
+    procedure Execute;
   public
     function RESTClient: IClient<IREST4D>;
     function RESTResponse: IResponse<IREST4D>;
@@ -153,26 +154,7 @@ begin
   Result              := Self;
   FRESTRequest.Method := rmDELETE;
 
-  if Assigned(FOnAfterRequest) then
-    FOnAfterRequest();
-
-  SetConfiguration;
-  try
-    FRESTRequest.Execute;
-    SetResult;
-  except
-    on E: Exception do
-    begin
-      if Assigned(FOnRaisedException) then
-      begin
-        FOnRaisedException(E);
-
-        Exit;
-      end;
-    end;
-  end;
-
-  ExecProcs;
+  Execute;
 end;
 
 destructor TREST4D.Destroy;
@@ -200,12 +182,8 @@ begin
     Proc(FStatusCode, FJSONString);
 end;
 
-function TREST4D.Get(ResetConfiguration: Boolean): IREST4D;
+procedure TREST4D.Execute;
 begin
-  Result := Self;
-
-  FRESTRequest.Method := rmGET;
-
   if Assigned(FOnAfterRequest) then
     FOnAfterRequest();
 
@@ -226,6 +204,14 @@ begin
   end;
 
   ExecProcs;
+end;
+
+function TREST4D.Get(ResetConfiguration: Boolean): IREST4D;
+begin
+  Result              := Self;
+  FRESTRequest.Method := rmGET;
+
+  Execute;
 end;
 
 procedure TREST4D.JoinObjects;
@@ -285,26 +271,7 @@ begin
   Result              := Self;
   FRESTRequest.Method := rmPOST;
 
-  if Assigned(FOnAfterRequest) then
-    FOnAfterRequest();
-
-  SetConfiguration;
-  try
-    FRESTRequest.Execute;
-    SetResult;
-  except
-    on E: Exception do
-    begin
-      if Assigned(FOnRaisedException) then
-      begin
-        FOnRaisedException(E);
-
-        Exit;
-      end;
-    end;
-  end;
-
-  ExecProcs;
+  Execute;
 end;
 
 function TREST4D.Put(ResetConfiguration: Boolean): IREST4D;
@@ -312,26 +279,7 @@ begin
   Result              := Self;
   FRESTRequest.Method := rmPUT;;
 
-  if Assigned(FOnAfterRequest) then
-    FOnAfterRequest();
-
-  SetConfiguration;
-  try
-    FRESTRequest.Execute;
-    SetResult;
-  except
-    on E: Exception do
-    begin
-      if Assigned(FOnRaisedException) then
-      begin
-        FOnRaisedException(E);
-
-        Exit;
-      end;
-    end;
-  end;
-
-  ExecProcs;
+  Execute;
 end;
 
 procedure TREST4D.ResetFields;
