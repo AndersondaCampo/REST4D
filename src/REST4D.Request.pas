@@ -13,10 +13,8 @@ type
     FParent : T;
     FRequest: TRESTRequest;
   public
-    function SynchronizedEvents(const AValue: Boolean): IRequest<T>; overload;
-    function SynchronizedEvents: Boolean; overload;
-    function AcceptEncoding(const AValue: String): IRequest<T>; overload;
-    function AcceptEncoding: String; overload;
+    function SynchronizedEvents(const AValue: Boolean): IRequest<T>;
+    function AcceptEncoding(const AValue: String): IRequest<T>;
     function &End: T;
 
     class function New(AParent: T; Request: TRESTRequest): IRequest<T>;
@@ -27,11 +25,6 @@ type
 implementation
 
 { TRequest<T> }
-
-function TRequest<T>.AcceptEncoding: String;
-begin
-  Result := FRequest.AcceptEncoding;
-end;
 
 function TRequest<T>.AcceptEncoding(const AValue: String): IRequest<T>;
 begin
@@ -65,11 +58,6 @@ function TRequest<T>.SynchronizedEvents(const AValue: Boolean): IRequest<T>;
 begin
   Result                      := Self;
   FRequest.SynchronizedEvents := AValue;
-end;
-
-function TRequest<T>.SynchronizedEvents: Boolean;
-begin
-  Result := FRequest.SynchronizedEvents;
 end;
 
 end.

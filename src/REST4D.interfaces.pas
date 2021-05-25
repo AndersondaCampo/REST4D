@@ -6,45 +6,45 @@ uses
   System.SysUtils,
   System.JSON,
   Data.DB,
+  REST.Client,
+  REST.Response.Adapter,
   REST.Types;
 
 type
   IClient<T: IInterface> = Interface
     ['{1E793D7C-7078-41B2-B388-B8375B8CC2CD}']
-    function UserAgent(const AValue: String): IClient<T>; overload;
-    function UserAgent: String; overload;
-    function Accept(const AValue: String): IClient<T>; overload;
-    function Accept: String; overload;
-    function AcceptCharset(const AValue: String): IClient<T>; overload;
-    function AcceptCharset: String; overload;
-    function HandleRedirects(const AValue: Boolean): IClient<T>; overload;
-    function HandleRedirects: Boolean; overload;
-    function RaiseExceptionOn500(AValue: Boolean): IClient<T>; overload;
-    function RaiseExceptionOn500: Boolean; overload;
-    function ContentType(const AValue: String): IClient<T>; overload;
-    function ContentType: String; overload;
+    function UserAgent(const AValue: String): IClient<T>;
+    function Accept(const AValue: String): IClient<T>;
+    function AcceptCharset(const AValue: String): IClient<T>;
+    function HandleRedirects(const AValue: Boolean): IClient<T>;
+    function RaiseExceptionOn500(AValue: Boolean): IClient<T>;
+    function ContentType(const AValue: String): IClient<T>;
     function &End: T;
   End;
 
   IResponse<T: IInterface> = Interface
     ['{CC368209-88F1-41BB-9E97-18735A94F64E}']
-    function ContentType(const AValue: String): IResponse<T>; overload;
-    function ContentType: String; overload;
+    function ContentType(const AValue: String): IResponse<T>;
     function &End: T;
   End;
 
   IRequest<T: IInterface> = Interface
     ['{A5064091-E622-4D5F-8B32-FAC581911EE7}']
-    function SynchronizedEvents(const AValue: Boolean): IRequest<T>; overload;
-    function SynchronizedEvents: Boolean; overload;
-    function AcceptEncoding(const AValue: String): IRequest<T>; overload;
-    function AcceptEncoding: String; overload;
+    function SynchronizedEvents(const AValue: Boolean): IRequest<T>;
+    function AcceptEncoding(const AValue: String): IRequest<T>;
     function &end: T;
+  End;
+
+  IREST4DObjects = Interface
+    ['{C037042D-73C4-48D1-A988-D462BF389D3E}']
+    function Client: TRESTClient;
+    function Request: TRESTRequest;
+    function Response: TRESTResponse;
+    function Adapter: TRESTResponseDataSetAdapter;
   End;
 
   IREST4D = Interface
     ['{01100448-9189-47BB-89BE-DAA32905ACFA}']
-
     function RESTClient: IClient<IREST4D>;
     function RESTResponse: IResponse<IREST4D>;
     function RESTRequest: IRequest<IREST4D>;

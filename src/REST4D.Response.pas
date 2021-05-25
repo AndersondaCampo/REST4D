@@ -14,8 +14,7 @@ type
     FResponse: TRESTResponse;
 
   public
-    function ContentType(const AValue: String): IResponse<T>; overload;
-    function ContentType: String; overload;
+    function ContentType(const AValue: String): IResponse<T>;
     function &End: T;
 
     class function New(AParent: T; Response: TRESTResponse): IResponse<T>;
@@ -31,11 +30,6 @@ function TResponse<T>.ContentType(const AValue: String): IResponse<T>;
 begin
   Result                := Self;
   FResponse.ContentType := AValue;
-end;
-
-function TResponse<T>.ContentType: String;
-begin
-  Result := FResponse.ContentType;
 end;
 
 constructor TResponse<T>.Create(AParent: T; Response: TRESTResponse);

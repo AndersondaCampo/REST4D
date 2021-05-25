@@ -6,8 +6,6 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   System.JSON,
-  REST.Client,
-  REST.Response.Adapter,
   REST.Types,
   Data.DB,
   REST4D.interfaces;
@@ -16,19 +14,13 @@ type
   TREST4D = Class(TInterfacedObject, IREST4D)
   private
     { Fields }
-    FStatusCode   : Integer;
-    FJSONValue    : TJSONValue;
-    FJSONString   : String;
-    FServerMessage: String;
-    FAsync        : Boolean;
+    FStatusCode: Integer;
+    FJSONValue : TJSONValue;
+    FJSONString: String;
 
     { Objects }
-    FRESTClient        : TRESTClient;
-    FRESTResponse      : TRESTResponse;
-    FRESTRequest       : TRESTRequest;
-    FRESTDatasetAdapter: TRESTResponseDataSetAdapter;
-    FDataset           : TDataSet;
-    FProcsOnStatusCode : TDictionary<Integer, TProc<Integer, String>>;
+    FREST             : IREST4DObjects;
+    FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
 
     { interfaces }
     FIClient  : IClient<IREST4D>;
@@ -41,12 +33,11 @@ type
     FOnBeforeRequestP : TProc<Integer, String>;
     FOnRaisedException: TProc<Exception>;
 
-    procedure JoinObjects;
     procedure ResetFields;
-    procedure SetConfiguration;
     procedure SetResult;
     procedure ExecProcs;
     procedure Execute;
+    procedure ResetREST(AValue: Boolean);
   public
     function RESTClient: IClient<IREST4D>;
     function RESTResponse: IResponse<IREST4D>;
@@ -81,6 +72,7 @@ implementation
 
 uses
   IpPeerClient,
+  REST4D.Objects,
   REST4D.Response,
   REST4D.Client,
   REST4D.Request;
@@ -94,75 +86,64 @@ begin
   if AValue.IsEmpty then
     Exit;
 
-  FRESTRequest.Body.Add(AValue, ContentTypeFromString(ContentType));
+  FREST.Request.Body.Add(AValue, ContentTypeFromString(ContentType));
 end;
 
 function TREST4D.AddFile(const AName, AFilePath: String): IREST4D;
 begin
   Result := Self;
-  FRESTRequest.AddFile(AName,  AFilePath);
+  FREST.Request.AddFile(AName, AFilePath);
 end;
 
 function TREST4D.AddHeader(const AKey, AValue: String): IREST4D;
 begin
   Result := Self;
-  FRESTRequest.Params.AddHeader(AKey, AValue);
+  FREST.Request.Params.AddHeader(AKey, AValue);
 end;
 
 function TREST4D.AddParam(const AKey, AValue: String): IREST4D;
 begin
   Result := Self;
-  FRESTRequest.Params.AddItem(AKey, AValue);
+  FREST.Request.Params.AddItem(AKey, AValue);
 end;
 
 function TREST4D.BaseUrl(const AValue: String): IREST4D;
 begin
-  Result              := Self;
-  FRESTClient.BaseURL := AValue;
+  Result               := Self;
+  FREST.Client.BaseUrl := AValue;
 end;
 
 constructor TREST4D.Create();
 begin
-  { Fields }
-  ResetFields;
-
   { Objects }
-  FRESTClient         := TRESTClient.Create(nil);
-  FRESTResponse       := TRESTResponse.Create(nil);
-  FRESTRequest        := TRESTRequest.Create(nil);
-  FProcsOnStatusCode  := TDictionary<Integer, TProc<Integer, String>>.Create();
-  FRESTDatasetAdapter := TRESTResponseDataSetAdapter.Create(nil);
+  FREST              := TREST4DObjects.New;
+  FProcsOnStatusCode := TDictionary <Integer, TProc<Integer, String>>.Create();
 
-  JoinObjects;
-
-  FIClient   := TClient<IREST4D>.New(Self, FRESTClient);
-  FIResponse := TResponse<IREST4D>.New(Self, FRESTResponse);
-  FIRequest  := TRequest<IREST4D>.New(Self, FRESTRequest);
+  FIClient   := TClient<IREST4D>.New(Self, FREST.Client);
+  FIResponse := TResponse<IREST4D>.New(Self, FREST.Response);
+  FIRequest  := TRequest<IREST4D>.New(Self, FREST.Request);
 end;
 
 function TREST4D.DatasetAdapter(var AValue: TDataSet): IREST4D;
 begin
-  Result                         := Self;
-  FRESTDatasetAdapter.Response   := FRESTResponse;
-  FRESTDatasetAdapter.Dataset    := AValue;
-  FRESTDatasetAdapter.Active     := True;
-  FRESTDatasetAdapter.AutoUpdate := True;
+  Result                   := Self;
+  FREST.Adapter.Response   := FREST.Response;
+  FREST.Adapter.Dataset    := AValue;
+  FREST.Adapter.Active     := True;
+  FREST.Adapter.AutoUpdate := True;
 end;
 
 function TREST4D.Delete(ResetConfiguration: Boolean): IREST4D;
 begin
-  Result              := Self;
-  FRESTRequest.Method := rmDELETE;
+  Result               := Self;
+  FREST.Request.Method := rmDELETE;
 
   Execute;
+  ResetREST(ResetConfiguration);
 end;
 
 destructor TREST4D.Destroy;
 begin
-  FRESTClient.DisposeOf;
-  FRESTResponse.DisposeOf;
-  FRESTRequest.DisposeOf;
-  FRESTDatasetAdapter.DisposeOf;
   FProcsOnStatusCode.DisposeOf;
 
   inherited;
@@ -184,12 +165,13 @@ end;
 
 procedure TREST4D.Execute;
 begin
+  ResetFields;
+
   if Assigned(FOnAfterRequest) then
     FOnAfterRequest();
 
-  SetConfiguration;
   try
-    FRESTRequest.Execute;
+    FREST.Request.Execute;
     SetResult;
   except
     on E: Exception do
@@ -208,16 +190,11 @@ end;
 
 function TREST4D.Get(ResetConfiguration: Boolean): IREST4D;
 begin
-  Result              := Self;
-  FRESTRequest.Method := rmGET;
+  Result               := Self;
+  FREST.Request.Method := rmGET;
 
   Execute;
-end;
-
-procedure TREST4D.JoinObjects;
-begin
-  FRESTRequest.Client         := FRESTClient;
-  FRESTRequest.Response       := FRESTResponse;
+  ResetREST(ResetConfiguration);
 end;
 
 function TREST4D.JSONValue: TJSONValue;
@@ -262,39 +239,49 @@ end;
 
 function TREST4D.ParamOption(const AParamName: String; AOptions: TRESTRequestParameterOptions): IREST4D;
 begin
-  Result                                                  := Self;
-  FRESTRequest.Params.ParameterByName(AParamName).Options := AOptions;
+  Result                                                   := Self;
+  FREST.Request.Params.ParameterByName(AParamName).Options := AOptions;
 end;
 
 function TREST4D.Post(ResetConfiguration: Boolean): IREST4D;
 begin
-  Result              := Self;
-  FRESTRequest.Method := rmPOST;
+  Result               := Self;
+  FREST.Request.Method := rmPOST;
 
   Execute;
+  ResetREST(ResetConfiguration);
 end;
 
 function TREST4D.Put(ResetConfiguration: Boolean): IREST4D;
 begin
-  Result              := Self;
-  FRESTRequest.Method := rmPUT;;
+  Result               := Self;
+  FREST.Request.Method := rmPUT;;
 
   Execute;
+  ResetREST(ResetConfiguration);
 end;
 
 procedure TREST4D.ResetFields;
 begin
-  FStatusCode   := 0;
-  FJSONValue    := nil;
-  FJSONString   := EmptyStr;
-  FServerMessage:= EmptyStr;
-  FAsync        := False;
+  FStatusCode := 0;
+  FJSONValue  := nil;
+  FJSONString := EmptyStr;
+end;
+
+procedure TREST4D.ResetREST(AValue: Boolean);
+begin
+  if AValue then
+  begin
+    FREST.Client.ResetToDefaults;
+    FREST.Response.ResetToDefaults;
+    FREST.Request.ResetToDefaults;
+  end;
 end;
 
 function TREST4D.Resource(const AValue: String): IREST4D;
 begin
-  Result := Self;
-  FRESTRequest.Resource := AValue;
+  Result                 := Self;
+  FREST.Request.Resource := AValue;
 end;
 
 function TREST4D.RESTClient: IClient<IREST4D>;
@@ -312,35 +299,11 @@ begin
   Result := FIResponse;
 end;
 
-procedure TREST4D.SetConfiguration;
-begin
-  if Assigned(FIClient) then
-  begin
-    FRESTClient.Accept              := FIClient.Accept;
-    FRESTClient.ContentType         := FIClient.ContentType;
-    FRESTClient.UserAgent           := FIClient.UserAgent;
-    FRESTClient.AcceptCharset       := FIClient.AcceptCharset;
-    FRESTClient.HandleRedirects     := FIClient.HandleRedirects;
-    FRESTClient.RaiseExceptionOn500 := FIClient.RaiseExceptionOn500;
-  end;
-
-  if Assigned(FIResponse) then
-  begin
-    FRESTResponse.ContentType := FIResponse.ContentType;
-  end;
-
-  if Assigned(FIRequest) then
-  begin
-    FRESTRequest.SynchronizedEvents := FIRequest.SynchronizedEvents;
-    FRESTRequest.AcceptEncoding     := FIRequest.AcceptEncoding;
-  end;
-end;
-
 procedure TREST4D.SetResult;
 begin
-  FStatusCode := FRESTResponse.StatusCode;
-  FJSONValue  := FRESTResponse.JSONValue;
-  FJSONString := FRESTResponse.JSONText;
+  FStatusCode := FREST.Response.StatusCode;
+  FJSONValue  := FREST.Response.JSONValue;
+  FJSONString := FREST.Response.JSONText;
 end;
 
 function TREST4D.StatusCode: Integer;
