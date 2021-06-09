@@ -48,7 +48,7 @@ begin
     .RESTResponse
       .ContentType(CONTENTTYPE_APPLICATION_JSON)
     .&End
-    .OnAfterRequest(
+    .OnBeforeRequest(
       procedure()
       begin
         Memo1.Lines.Clear;
@@ -64,6 +64,10 @@ begin
       begin
         Memo1.Lines.Add('Sucesso na requisição');
         Memo1.Lines.Add('StatusCode: '+ ACode.ToString);
+      end)
+    .OnAfterRequest(
+      procedure(ACode: Integer; AJson: String)
+      begin
         Memo1.Lines.Add(AJson);
       end)
     .OnRaisedException(

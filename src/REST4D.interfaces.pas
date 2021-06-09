@@ -60,9 +60,9 @@ type
     function Post(ResetConfiguration: Boolean = False): IREST4D;
     function Delete(ResetConfiguration: Boolean = False): IREST4D;
     function DatasetAdapter(var AValue: TDataSet): IREST4D;
-    function OnAfterRequest(AValue: TProc): IREST4D;
-    function OnBeforeRequest(AValue: TProc): IREST4D; overload;
-    function OnBeforeRequest(AValue: TProc<Integer, String>): IREST4D; overload;
+    function OnBeforeRequest(AValue: TProc): IREST4D;
+    function OnAfterRequest(AValue: TProc): IREST4D; overload;
+    function OnAfterRequest(AValue: TProc<Integer, String>): IREST4D; overload;
     function OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, String>): IREST4D;
     function OnRaisedException(AValue: TProc<Exception>): IREST4D;
     function StatusCode: Integer;

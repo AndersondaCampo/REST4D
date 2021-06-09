@@ -28,9 +28,9 @@ type
     FIRequest : IRequest<IREST4D>;
 
     { Events }
-    FOnAfterRequest   : TProc;
     FOnBeforeRequest  : TProc;
-    FOnBeforeRequestP : TProc<Integer, String>;
+    FOnAfterRequest   : TProc;
+    FOnAfterRequestJSON : TProc<Integer, String>;
     FOnRaisedException: TProc<Exception>;
 
     procedure ResetFields;
@@ -54,9 +54,9 @@ type
     function Post(ResetConfiguration: Boolean = False): IREST4D;
     function Delete(ResetConfiguration: Boolean = False): IREST4D;
     function DatasetAdapter(var AValue: TDataSet): IREST4D;
-    function OnAfterRequest(AValue: TProc): IREST4D;
-    function OnBeforeRequest(AValue: TProc): IREST4D; overload;
-    function OnBeforeRequest(AValue: TProc<Integer, String>): IREST4D; overload;
+    function OnBeforeRequest(AValue: TProc): IREST4D;
+    function OnAfterRequest(AValue: TProc): IREST4D; overload;
+    function OnAfterRequest(AValue: TProc<Integer, String>): IREST4D; overload;
     function OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, String>): IREST4D;
     function OnRaisedException(AValue: TProc<Exception>): IREST4D;
     function StatusCode: Integer;
@@ -156,8 +156,8 @@ begin
   if Assigned(FOnBeforeRequest) then
     FOnBeforeRequest();
 
-  if Assigned(FOnBeforeRequestP) then
-    FOnBeforeRequestP(FStatusCode, FJSONString);
+  if Assigned(FOnAfterRequestJSON) then
+    FOnAfterRequestJSON(FStatusCode, FJSONString);
 
   if FProcsOnStatusCode.TryGetValue(FStatusCode, Proc) then
     Proc(FStatusCode, FJSONString);
@@ -213,10 +213,10 @@ begin
   FOnAfterRequest := AValue;
 end;
 
-function TREST4D.OnBeforeRequest(AValue: TProc<Integer, String>): IREST4D;
+function TREST4D.OnAfterRequest(AValue: TProc<Integer, String>): IREST4D;
 begin
-  Result            := Self;
-  FOnBeforeRequestP := AValue;
+  Result              := Self;
+  FOnAfterRequestJSON := AValue;
 end;
 
 function TREST4D.OnBeforeRequest(AValue: TProc): IREST4D;
