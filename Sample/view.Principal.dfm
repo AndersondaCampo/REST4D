@@ -3,7 +3,7 @@ object FrmPrincipal: TFrmPrincipal
   Top = 0
   BorderStyle = bsSizeToolWin
   Caption = 'FrmPrincipal'
-  ClientHeight = 261
+  ClientHeight = 337
   ClientWidth = 784
   Color = clBtnFace
   Constraints.MinHeight = 300
@@ -32,7 +32,7 @@ object FrmPrincipal: TFrmPrincipal
       Width = 111
       Height = 25
       Align = alRight
-      Caption = 'Executar'
+      Caption = 'Normal'
       TabOrder = 0
       OnClick = Button1Click
     end
@@ -40,7 +40,7 @@ object FrmPrincipal: TFrmPrincipal
       AlignWithMargins = True
       Left = 3
       Top = 3
-      Width = 667
+      Width = 556
       Height = 19
       Cursor = crIBeam
       Align = alClient
@@ -51,17 +51,36 @@ object FrmPrincipal: TFrmPrincipal
       TabOrder = 1
       Text = 'viacep.com.br/ws/01001000/json/'
       OnKeyPress = edtLinkKeyPress
+      ExplicitWidth = 667
+    end
+    object Button2: TButton
+      Left = 562
+      Top = 0
+      Width = 111
+      Height = 25
+      Align = alRight
+      Caption = 'Ass'#237'ncrono'
+      TabOrder = 2
+      OnClick = Button2Click
+      ExplicitLeft = 673
     end
   end
   object Memo1: TMemo
     Left = 0
     Top = 25
     Width = 784
-    Height = 236
+    Height = 312
     Align = alClient
     BorderStyle = bsNone
     Color = 15790320
     ScrollBars = ssBoth
     TabOrder = 1
+    ExplicitHeight = 236
+  end
+  object ActivityIndicator: TActivityIndicator
+    Left = 344
+    Top = 128
+    IndicatorSize = aisLarge
+    IndicatorType = aitSectorRing
   end
 end

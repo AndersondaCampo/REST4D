@@ -12,6 +12,10 @@ uses
 
 type
   TREST4D = Class(TInterfacedObject, IREST4D)
+  strict private
+    class var
+      Rest4DAsync: IREST4D;
+      FAsync     : Boolean;
   private
     { Fields }
     FStatusCode: Integer;
@@ -19,10 +23,10 @@ type
     FJSONString: String;
 
     { Objects }
-    FREST             : IREST4DObjects;
     FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
 
     { interfaces }
+    FREST     : IREST4DObjects;
     FIClient  : IClient<IREST4D>;
     FIResponse: IResponse<IREST4D>;
     FIRequest : IRequest<IREST4D>;
@@ -35,7 +39,6 @@ type
 
     procedure ResetFields;
     procedure SetResult;
-    procedure ExecProcs;
     procedure Execute;
     procedure ResetREST(AValue: Boolean);
   public
@@ -63,7 +66,13 @@ type
     function JSONValue: TJSONValue;
     function JSONString: String;
 
+    /// <summary> Nova instância de TREST4D para requisição na main thread </summary>
+    /// <returns> TREST4D: IREST4D </returns>
     class function New: IREST4D;
+    /// <summary> Nova instância de TREST4D para requisição em thread paralela </summary>
+    /// <returns> TREST4D: IREST4D </returns>
+    class function Async: IREST4D;
+
     constructor Create;
     destructor Destroy; override;
   End;
@@ -71,6 +80,7 @@ type
 implementation
 
 uses
+  System.Threading,
   IpPeerClient,
   REST4D.Objects,
   REST4D.Response,
@@ -105,6 +115,13 @@ function TREST4D.AddParam(const AKey, AValue: String): IREST4D;
 begin
   Result := Self;
   FREST.Request.Params.AddItem(AKey, AValue);
+end;
+
+class function TREST4D.Async: IREST4D;
+begin
+  Rest4DAsync := TREST4D.Create;
+  Result      := Rest4DAsync;
+  FAsync      := True;
 end;
 
 function TREST4D.BaseUrl(const AValue: String): IREST4D;
@@ -149,43 +166,47 @@ begin
   inherited;
 end;
 
-procedure TREST4D.ExecProcs;
-var
-  Proc: TProc<Integer, String>;
-begin
-  if Assigned(FOnBeforeRequest) then
-    FOnBeforeRequest();
-
-  if Assigned(FOnAfterRequestJSON) then
-    FOnAfterRequestJSON(FStatusCode, FJSONString);
-
-  if FProcsOnStatusCode.TryGetValue(FStatusCode, Proc) then
-    Proc(FStatusCode, FJSONString);
-end;
-
 procedure TREST4D.Execute;
+var
+  LProc: TProc;
 begin
-  ResetFields;
+  LProc :=  procedure
+            var
+              Proc: TProc<Integer, String>;
+            begin
+              ResetFields;
 
-  if Assigned(FOnAfterRequest) then
-    FOnAfterRequest();
+              if Assigned(FOnBeforeRequest) then
+                FOnBeforeRequest();
 
-  try
-    FREST.Request.Execute;
-    SetResult;
-  except
-    on E: Exception do
-    begin
-      if Assigned(FOnRaisedException) then
-      begin
-        FOnRaisedException(E);
+              try
+                FREST.Request.Execute;
+                SetResult;
+              except
+                on E: Exception do
+                begin
+                  if Assigned(FOnRaisedException) then
+                  begin
+                    FOnRaisedException(E);
+                      Exit;
+                  end;
+                end;
+              end;
 
-        Exit;
-      end;
-    end;
-  end;
+              if Assigned(FOnAfterRequest) then
+                FOnAfterRequest();
 
-  ExecProcs;
+              if Assigned(FOnAfterRequestJSON) then
+                FOnAfterRequestJSON(FStatusCode, FJSONString);
+
+              if FProcsOnStatusCode.TryGetValue(FStatusCode, Proc) then
+                Proc(FStatusCode, FJSONString);
+            end;
+
+  if FAsync then
+    TTask.Run(LProc)
+  else
+    LProc();
 end;
 
 function TREST4D.Get(ResetConfiguration: Boolean): IREST4D;
@@ -205,6 +226,7 @@ end;
 class function TREST4D.New: IREST4D;
 begin
   Result := TREST4D.Create;
+  FAsync := False;
 end;
 
 function TREST4D.OnAfterRequest(AValue: TProc): IREST4D;
