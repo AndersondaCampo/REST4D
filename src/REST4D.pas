@@ -12,11 +12,12 @@ uses
 
 type
   TREST4D = Class(TInterfacedObject, IREST4D)
-  strict private
-    class var
-      Rest4DAsync: IREST4D;
-      FAsync     : Boolean;
   private
+    class var
+      Rest4DAsync: TList<IREST4D>;
+      FAsync     : Boolean;
+
+    var
     { Fields }
     FStatusCode: Integer;
     FJSONValue : TJSONValue;
@@ -119,9 +120,10 @@ end;
 
 class function TREST4D.Async: IREST4D;
 begin
-  Rest4DAsync := TREST4D.Create;
-  Result      := Rest4DAsync;
-  FAsync      := True;
+  Result := TREST4D.Create;
+  FAsync := True;
+
+  Rest4DAsync.Add(Result);
 end;
 
 function TREST4D.BaseUrl(const AValue: String): IREST4D;
@@ -337,5 +339,11 @@ function TREST4D.JSONString: String;
 begin
   Result := FJSONString;
 end;
+
+initialization
+  TREST4D.Rest4DAsync := TList<IREST4D>.Create;
+
+finalization
+  TREST4D.Rest4DAsync.DisposeOf;
 
 end.
