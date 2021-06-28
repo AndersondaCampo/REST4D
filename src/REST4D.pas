@@ -1,9 +1,10 @@
-unit REST4D;
+Ôªøunit REST4D;
 
 interface
 
 uses
   System.SysUtils,
+  System.Classes,
   System.Generics.Collections,
   System.JSON,
   REST.Types,
@@ -22,6 +23,7 @@ type
     FStatusCode: Integer;
     FJSONValue : TJSONValue;
     FJSONString: String;
+    FStream    : TMemoryStream;
 
     { Objects }
     FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
@@ -51,7 +53,8 @@ type
     function AddHeader(const AKey, AValue: String): IREST4D;
     function AddParam(const AKey, AValue: String): IREST4D;
     function ParamOption(const AParamName: String; AOptions: TRESTRequestParameterOptions): IREST4D;
-    function AddBody(const AValue: String; const ContentType: String): IREST4D;
+    function AddBody(const AValue: String; const ContentType: String): IREST4D; overload;
+    function AddBody(AValue: TStream; const ContentType: String): IREST4D; overload;
     function AddFile(const AName, AFilePath: String): IREST4D;
     function Get(ResetConfiguration: Boolean = False): IREST4D;
     function Put(ResetConfiguration: Boolean = False): IREST4D;
@@ -66,11 +69,12 @@ type
     function StatusCode: Integer;
     function JSONValue: TJSONValue;
     function JSONString: String;
+    function ResultStream: TMemoryStream;
 
-    /// <summary> Nova inst‚ncia de TREST4D para requisiÁ„o na main thread </summary>
+    /// <summary> Nova inst√¢ncia de TREST4D para requisi√ß√£o na main thread </summary>
     /// <returns> TREST4D: IREST4D </returns>
     class function New: IREST4D;
-    /// <summary> Nova inst‚ncia de TREST4D para requisiÁ„o em thread paralela </summary>
+    /// <summary> Nova inst√¢ncia de TREST4D para requisi√ß√£o em thread paralela </summary>
     /// <returns> TREST4D: IREST4D </returns>
     class function Async: IREST4D;
 
@@ -98,6 +102,14 @@ begin
     Exit;
 
   FREST.Request.Body.Add(AValue, ContentTypeFromString(ContentType));
+end;
+
+function TREST4D.AddBody(AValue: TStream; const ContentType: String): IREST4D;
+begin
+  Result := Self;
+
+  if Assigned(AValue) then
+    FREST.Request.Body.Add(AValue, ContentTypeFromString(ContentType));
 end;
 
 function TREST4D.AddFile(const AName, AFilePath: String): IREST4D;
@@ -135,6 +147,8 @@ end;
 constructor TREST4D.Create();
 begin
   { Objects }
+  FStream := TMemoryStream.Create;
+
   FREST              := TREST4DObjects.New;
   FProcsOnStatusCode := TDictionary <Integer, TProc<Integer, String>>.Create();
 
@@ -163,6 +177,7 @@ end;
 
 destructor TREST4D.Destroy;
 begin
+  FStream.DisposeOf;
   FProcsOnStatusCode.DisposeOf;
 
   inherited;
@@ -323,11 +338,24 @@ begin
   Result := FIResponse;
 end;
 
+function TREST4D.ResultStream: TMemoryStream;
+begin
+  Result := FStream;
+end;
+
 procedure TREST4D.SetResult;
 begin
   FStatusCode := FREST.Response.StatusCode;
-  FJSONValue  := FREST.Response.JSONValue;
-  FJSONString := FREST.Response.JSONText;
+
+  if Assigned(FREST.Response.JSONValue) then
+  begin
+    FJSONValue  := FREST.Response.JSONValue;
+    FJSONString := FREST.Response.JSONValue.ToJSON;
+  end;
+
+  FStream.Clear;
+  FStream.Write(FREST.Response.RawBytes, 0, Length(FREST.Response.RawBytes));
+  FStream.Position := 0;
 end;
 
 function TREST4D.StatusCode: Integer;

@@ -51,7 +51,6 @@ object FrmPrincipal: TFrmPrincipal
       TabOrder = 1
       Text = 'viacep.com.br/ws/01001000/json/'
       OnKeyPress = edtLinkKeyPress
-      ExplicitWidth = 667
     end
     object Button2: TButton
       Left = 562
@@ -62,7 +61,6 @@ object FrmPrincipal: TFrmPrincipal
       Caption = 'Ass'#237'ncrono'
       TabOrder = 2
       OnClick = Button2Click
-      ExplicitLeft = 673
     end
   end
   object Memo1: TMemo
@@ -75,7 +73,6 @@ object FrmPrincipal: TFrmPrincipal
     Color = 15790320
     ScrollBars = ssBoth
     TabOrder = 1
-    ExplicitHeight = 236
   end
   object ActivityIndicator: TActivityIndicator
     Left = 344

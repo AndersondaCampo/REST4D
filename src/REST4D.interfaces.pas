@@ -4,6 +4,7 @@ interface
 
 uses
   System.SysUtils,
+  System.Classes,
   System.JSON,
   Data.DB,
   REST.Client,
@@ -53,7 +54,8 @@ type
     function AddHeader(const AKey, AValue: String): IREST4D;
     function AddParam(const AKey, AValue: String): IREST4D;
     function ParamOption(const AParamName: String; AOptions: TRESTRequestParameterOptions): IREST4D;
-    function AddBody(const AValue: String; const ContentType: String): IREST4D;
+    function AddBody(const AValue: String; const ContentType: String): IREST4D; overload;
+    function AddBody(AValue: TStream; const ContentType: String): IREST4D; overload;
     function AddFile(const AName, AFilePath: String): IREST4D;
     function Get(ResetConfiguration: Boolean = False): IREST4D;
     function Put(ResetConfiguration: Boolean = False): IREST4D;
@@ -68,6 +70,7 @@ type
     function StatusCode: Integer;
     function JSONValue: TJSONValue;
     function JSONString: String;
+    function ResultStream: TMemoryStream;
   End;
 
 implementation
