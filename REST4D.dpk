@@ -43,6 +43,7 @@ requires
 contains
   REST4D.Client in 'src\REST4D.Client.pas',
   REST4D.interfaces in 'src\REST4D.interfaces.pas',
+  REST4D.OAuth2 in 'src\REST4D.OAuth2.pas',
   REST4D.Objects in 'src\REST4D.Objects.pas',
   REST4D in 'src\REST4D.pas',
   REST4D.Request in 'src\REST4D.Request.pas',

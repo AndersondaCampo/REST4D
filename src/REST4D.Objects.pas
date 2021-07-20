@@ -5,7 +5,8 @@ interface
 uses
   REST.Client,
   REST.Response.Adapter,
-  REST4D.Interfaces;
+  REST4D.Interfaces,
+  REST.Authenticator.OAuth;
 
 type
   TREST4DObjects = Class(TInterfacedObject, IREST4DObjects)

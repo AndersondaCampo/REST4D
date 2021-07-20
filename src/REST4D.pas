@@ -15,8 +15,8 @@ type
   TREST4D = Class(TInterfacedObject, IREST4D)
   private
     class var
-      Rest4DAsync: TList<IREST4D>;
-      FAsync     : Boolean;
+    Rest4DAsync : TList<IREST4D>;
+    FAsync      : Boolean;
 
     var
     { Fields }
@@ -24,6 +24,8 @@ type
     FJSONValue : TJSONValue;
     FJSONString: String;
     FStream    : TMemoryStream;
+    FUseOauth2 : Boolean;
+    FToken     : String;
 
     { Objects }
     FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
@@ -33,21 +35,29 @@ type
     FIClient  : IClient<IREST4D>;
     FIResponse: IResponse<IREST4D>;
     FIRequest : IRequest<IREST4D>;
+    FOAuth2   : IOAuth2<IREST4D>;
 
     { Events }
-    FOnBeforeRequest  : TProc;
-    FOnAfterRequest   : TProc;
-    FOnAfterRequestJSON : TProc<Integer, String>;
-    FOnRaisedException: TProc<Exception>;
+    FOnAuth               : TProc<String>;
+    FOnAuthRaiseException : TProc<Exception>;
+    FOnBeforeRequest      : TProc;
+    FOnAfterRequest       : TProc;
+    FOnAfterRequestJSON   : TProc<Integer, String>;
+    FOnRaisedException    : TProc<Exception>;
 
     procedure ResetFields;
     procedure SetResult;
     procedure Execute;
     procedure ResetREST(AValue: Boolean);
+    procedure ExecOAuth2;
   public
     function RESTClient: IClient<IREST4D>;
     function RESTResponse: IResponse<IREST4D>;
     function RESTRequest: IRequest<IREST4D>;
+    function OAuth2: IOAuth2<IREST4D>;
+    function Authenticate: IREST4D;
+    function Bearer(const AValue: String): IREST4D;
+    function OnAuthenticateRaiseException(AValue: TProc<Exception>): IREST4D;
     function BaseUrl(const AValue: String): IREST4D;
     function Resource(const AValue: String): IREST4D;
     function AddHeader(const AKey, AValue: String): IREST4D;
@@ -61,6 +71,7 @@ type
     function Post(ResetConfiguration: Boolean = False): IREST4D;
     function Delete(ResetConfiguration: Boolean = False): IREST4D;
     function DatasetAdapter(var AValue: TDataSet): IREST4D;
+    function OnAuthenticate(AValue: TProc<String>): IREST4D;
     function OnBeforeRequest(AValue: TProc): IREST4D;
     function OnAfterRequest(AValue: TProc): IREST4D; overload;
     function OnAfterRequest(AValue: TProc<Integer, String>): IREST4D; overload;
@@ -85,12 +96,19 @@ type
 implementation
 
 uses
+  System.Net.HttpClient,
+  System.Net.URLClient,
+  System.NetConsts,
+  System.NetEncoding,
   System.Threading,
   IpPeerClient,
+  REST.Json,
   REST4D.Objects,
   REST4D.Response,
   REST4D.Client,
-  REST4D.Request;
+  REST4D.Request,
+  REST4D.OAuth2,
+  REST.Utils;
 
 { TREST4D<T> }
 
@@ -138,10 +156,30 @@ begin
   Rest4DAsync.Add(Result);
 end;
 
+function TREST4D.Authenticate: IREST4D;
+begin
+ Result := Self;
+
+  if FUseOauth2 then
+    ExecOAuth2;
+end;
+
 function TREST4D.BaseUrl(const AValue: String): IREST4D;
 begin
   Result               := Self;
   FREST.Client.BaseUrl := AValue;
+end;
+
+function TREST4D.Bearer(const AValue: String): IREST4D;
+begin
+  Result := Self;
+
+  if AValue <> '' then
+  begin
+    FToken := AValue;
+    FREST.Request.Params.AddHeader('Authorization', 'Bearer '+ AValue);
+    FREST.Request.Params.ParameterByName('Authorization').Options := [poDoNotEncode];
+  end;
 end;
 
 constructor TREST4D.Create();
@@ -151,10 +189,12 @@ begin
 
   FREST              := TREST4DObjects.New;
   FProcsOnStatusCode := TDictionary <Integer, TProc<Integer, String>>.Create();
+  FUseOauth2         := False;
 
   FIClient   := TClient<IREST4D>.New(Self, FREST.Client);
   FIResponse := TResponse<IREST4D>.New(Self, FREST.Response);
   FIRequest  := TRequest<IREST4D>.New(Self, FREST.Request);
+  FOAuth2    := TOAuth2<IREST4D>.New(Self);
 end;
 
 function TREST4D.DatasetAdapter(var AValue: TDataSet): IREST4D;
@@ -181,6 +221,55 @@ begin
   FProcsOnStatusCode.DisposeOf;
 
   inherited;
+end;
+
+procedure TREST4D.ExecOAuth2;
+var
+  response: IHTTPResponse;
+  Client  : THTTPClient;
+  props   : TOAuth2Params;
+  source  : TStringStream;
+  jo      : TJSONObject;
+  jv      : TJSONValue;
+begin
+  props := FOAuth2.Props;
+
+  jo := TJSONObject.Create;
+  try
+    jo.AddPair('grant_type', 'client_credentials');
+
+    if Props.ClientID <> '' then
+      jo.AddPair('client_id', Props.ClientID);
+
+    if Props.ClientSecret <> '' then
+      jo.AddPair('client_secret', Props.ClientSecret);
+
+    source := TStringStream.Create(jo.ToJSON);
+    Client := THTTPClient.Create;
+    try
+      Client.ContentType := 'application/json';
+      try
+        response := Client.Post(props.AuthorizationEndpoint, source);
+        jv := jo.ParseJSONValue(response.ContentAsString());
+        jv.TryGetValue<String>('access_token', FToken);
+
+        if Assigned(FOnAuth) then
+          FOnAuth(response.ContentAsString());
+      except
+        on E: Exception do
+          if Assigned(FOnAuthRaiseException) then
+            FOnAuthRaiseException(E)
+          else
+            raise Exception.Create(E.Message);
+      end;
+    finally
+      jv.DisposeOf;
+      source.DisposeOf;
+      Client.DisposeOf;
+    end;
+  finally
+    jo.DisposeOf;
+  end;
 end;
 
 procedure TREST4D.Execute;
@@ -252,10 +341,28 @@ begin
   FOnAfterRequest := AValue;
 end;
 
+function TREST4D.OAuth2: IOAuth2<IREST4D>;
+begin
+  Result     := FOAuth2;
+  FUseOauth2 := True;
+end;
+
 function TREST4D.OnAfterRequest(AValue: TProc<Integer, String>): IREST4D;
 begin
   Result              := Self;
   FOnAfterRequestJSON := AValue;
+end;
+
+function TREST4D.OnAuthenticate(AValue: TProc<String>): IREST4D;
+begin
+  Result  := Self;
+  FOnAuth := AValue;
+end;
+
+function TREST4D.OnAuthenticateRaiseException(AValue: TProc<Exception>): IREST4D;
+begin
+  Result                := Self;
+  FOnAuthRaiseException := AValue;
 end;
 
 function TREST4D.OnBeforeRequest(AValue: TProc): IREST4D;
@@ -350,7 +457,7 @@ begin
   if Assigned(FREST.Response.JSONValue) then
   begin
     FJSONValue  := FREST.Response.JSONValue;
-    FJSONString := FREST.Response.JSONValue.ToJSON;
+    FJSONString := TJson.Format(FREST.Response.JSONValue);
   end;
 
   FStream.Clear;

@@ -13,11 +13,6 @@
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Android' and '$(Base)'=='true') or '$(Base_Android)'!=''">
-        <Base_Android>true</Base_Android>
-        <CfgParent>Base</CfgParent>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Linux64' and '$(Base)'=='true') or '$(Base_Linux64)'!=''">
         <Base_Linux64>true</Base_Linux64>
         <CfgParent>Base</CfgParent>
@@ -63,9 +58,6 @@
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
         <SanitizedProjectName>REST4D</SanitizedProjectName>
         <DCC_UsePackage>RESTComponents;$(DCC_UsePackage)</DCC_UsePackage>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Base_Android)'!=''">
-        <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Linux64)'!=''">
         <DCC_UsePackage>rtl;dbrtl;CustomIPTransport;IndySystem;IndyProtocols;IndyCore;bindcomp;bindengine;$(DCC_UsePackage)</DCC_UsePackage>
@@ -115,6 +107,7 @@
         <DCCReference Include="bindengine.dcp"/>
         <DCCReference Include="src\REST4D.Client.pas"/>
         <DCCReference Include="src\REST4D.interfaces.pas"/>
+        <DCCReference Include="src\REST4D.OAuth2.pas"/>
         <DCCReference Include="src\REST4D.Objects.pas"/>
         <DCCReference Include="src\REST4D.pas"/>
         <DCCReference Include="src\REST4D.Request.pas"/>
@@ -526,7 +519,6 @@
                 <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
             </Deployment>
             <Platforms>
-                <Platform value="Android">False</Platform>
                 <Platform value="Linux64">False</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>

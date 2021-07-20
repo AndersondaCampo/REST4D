@@ -36,6 +36,28 @@ type
     function &end: T;
   End;
 
+  TOAuth2Params = Record
+    AuthorizationEndpoint: String;
+    AccessTokenEndpoint  : String;
+    RedirectionEndpoint  : String;
+    ClientID             : String;
+    ClientSecret         : String;
+    Scope                : String;
+    ResponseType         : String;
+    Token                : String;
+  End;
+
+  IOAuth2<T: IInterface> = Interface
+    ['{D272DFD1-3701-4DA9-BADE-5F008940C325}']
+    function AuthorizationEndpoint(const AValue: String): IOAuth2<T>;
+    function AccessTokenEndpoint(const AValue: String): IOAuth2<T>;
+    function ClientID(const AValue: String): IOAuth2<T>;
+    function ClientSecret(const AValue: String): IOAuth2<T>;
+    function ResponseType(const AValue: String): IOAuth2<T>;
+    function Props: TOAuth2Params;
+    function &End: T;
+  End;
+
   IREST4DObjects = Interface
     ['{C037042D-73C4-48D1-A988-D462BF389D3E}']
     function Client: TRESTClient;
@@ -49,6 +71,10 @@ type
     function RESTClient: IClient<IREST4D>;
     function RESTResponse: IResponse<IREST4D>;
     function RESTRequest: IRequest<IREST4D>;
+    function OAuth2: IOAuth2<IREST4D>;
+    function Authenticate: IREST4D;
+    function Bearer(const AValue: String): IREST4D;
+    function OnAuthenticateRaiseException(AValue: TProc<Exception>): IREST4D;
     function BaseUrl(const AValue: String): IREST4D;
     function Resource(const AValue: String): IREST4D;
     function AddHeader(const AKey, AValue: String): IREST4D;
@@ -62,6 +88,7 @@ type
     function Post(ResetConfiguration: Boolean = False): IREST4D;
     function Delete(ResetConfiguration: Boolean = False): IREST4D;
     function DatasetAdapter(var AValue: TDataSet): IREST4D;
+    function OnAuthenticate(AValue: TProc<String>): IREST4D;
     function OnBeforeRequest(AValue: TProc): IREST4D;
     function OnAfterRequest(AValue: TProc): IREST4D; overload;
     function OnAfterRequest(AValue: TProc<Integer, String>): IREST4D; overload;
