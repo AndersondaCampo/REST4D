@@ -263,6 +263,7 @@ begin
             raise Exception.Create(E.Message);
       end;
     finally
+      response._Release;
       jv.DisposeOf;
       source.DisposeOf;
       Client.DisposeOf;
