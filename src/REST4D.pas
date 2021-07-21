@@ -250,8 +250,17 @@ begin
       Client.ContentType := 'application/json';
       try
         response := Client.Post(props.AuthorizationEndpoint, source);
+
+        if response.StatusCode <> 200 then
+          raise Exception.Create('Request error('+ response.statuscode.ToString +') '+ response.ContentAsString());
+
         jv := jo.ParseJSONValue(response.ContentAsString());
-        jv.TryGetValue<String>('access_token', FToken);
+        try
+          jv.TryGetValue<String>('access_token', FToken);
+
+        finally
+          jv.DisposeOf;
+        end;
 
         if Assigned(FOnAuth) then
           FOnAuth(response.ContentAsString());
@@ -263,8 +272,9 @@ begin
             raise Exception.Create(E.Message);
       end;
     finally
-      response._Release;
-      jv.DisposeOf;
+      if Assigned(response) then
+        response._Release;
+
       source.DisposeOf;
       Client.DisposeOf;
     end;
