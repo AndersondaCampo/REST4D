@@ -15,6 +15,7 @@ type
   public
     function SynchronizedEvents(const AValue: Boolean): IRequest<T>;
     function AcceptEncoding(const AValue: String): IRequest<T>;
+    function TimeOut(const AValue: Integer): IRequest<T>;
     function &End: T;
 
     class function New(AParent: T; Request: TRESTRequest): IRequest<T>;
@@ -58,6 +59,12 @@ function TRequest<T>.SynchronizedEvents(const AValue: Boolean): IRequest<T>;
 begin
   Result                      := Self;
   FRequest.SynchronizedEvents := AValue;
+end;
+
+function TRequest<T>.TimeOut(const AValue: Integer): IRequest<T>;
+begin
+  Result           := Self;
+  FRequest.Timeout := AValue;
 end;
 
 end.

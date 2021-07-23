@@ -33,6 +33,7 @@ type
     ['{A5064091-E622-4D5F-8B32-FAC581911EE7}']
     function SynchronizedEvents(const AValue: Boolean): IRequest<T>;
     function AcceptEncoding(const AValue: String): IRequest<T>;
+    function TimeOut(const AValue: Integer): IRequest<T>;
     function &end: T;
   End;
 
