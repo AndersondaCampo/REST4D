@@ -93,6 +93,10 @@ type
     destructor Destroy; override;
   End;
 
+
+const
+  CTT_APP_JSON = CONTENTTYPE_APPLICATION_JSON;
+
 implementation
 
 uses
@@ -203,7 +207,7 @@ begin
   FREST.Adapter.Response   := FREST.Response;
   FREST.Adapter.Dataset    := AValue;
   FREST.Adapter.Active     := True;
-  FREST.Adapter.AutoUpdate := True;
+  FREST.Adapter.AutoUpdate := False;
 end;
 
 function TREST4D.Delete(ResetConfiguration: Boolean): IREST4D;
@@ -469,6 +473,9 @@ begin
   begin
     FJSONValue  := FREST.Response.JSONValue;
     FJSONString := TJson.Format(FREST.Response.JSONValue);
+
+    if Assigned(FREST.Adapter.Dataset) then
+      FREST.Adapter.UpdateDataSet;
   end;
 
   FStream.Clear;
