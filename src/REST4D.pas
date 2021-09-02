@@ -26,6 +26,7 @@ type
     FStream    : TMemoryStream;
     FUseOauth2 : Boolean;
     FToken     : String;
+    FQuery     : TDictionary<String, String>;
 
     { Objects }
     FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
@@ -47,6 +48,7 @@ type
 
     procedure ResetFields;
     procedure SetResult;
+    procedure ProcessQuery;
     procedure Execute;
     procedure ResetREST(AValue: Boolean);
     procedure ExecOAuth2;
@@ -61,6 +63,7 @@ type
     function BaseUrl(const AValue: String): IREST4D;
     function Resource(const AValue: String): IREST4D;
     function AddHeader(const AKey, AValue: String): IREST4D;
+    function AddQuery(const AKey, AValue: String): IREST4D;
     function AddParam(const AKey, AValue: String): IREST4D;
     function ParamOption(const AParamName: String; AOptions: TRESTRequestParameterOptions): IREST4D;
     function AddBody(const AValue: String; const ContentType: String): IREST4D; overload;
@@ -92,10 +95,6 @@ type
     constructor Create;
     destructor Destroy; override;
   End;
-
-
-const
-  CTT_APP_JSON = CONTENTTYPE_APPLICATION_JSON;
 
 implementation
 
@@ -152,6 +151,12 @@ begin
   FREST.Request.Params.AddItem(AKey, AValue);
 end;
 
+function TREST4D.AddQuery(const AKey, AValue: String): IREST4D;
+begin
+  Result := Self;
+  FQuery.AddOrSetValue(AKey, AValue);
+end;
+
 class function TREST4D.Async: IREST4D;
 begin
   Result := TREST4D.Create;
@@ -194,6 +199,7 @@ begin
   FREST              := TREST4DObjects.New;
   FProcsOnStatusCode := TDictionary <Integer, TProc<Integer, String>>.Create();
   FUseOauth2         := False;
+  FQuery             := TDictionary<String, String>.Create;
 
   FIClient   := TClient<IREST4D>.New(Self, FREST.Client);
   FIResponse := TResponse<IREST4D>.New(Self, FREST.Response);
@@ -207,7 +213,7 @@ begin
   FREST.Adapter.Response   := FREST.Response;
   FREST.Adapter.Dataset    := AValue;
   FREST.Adapter.Active     := True;
-  FREST.Adapter.AutoUpdate := False;
+  FREST.Adapter.AutoUpdate := True;
 end;
 
 function TREST4D.Delete(ResetConfiguration: Boolean): IREST4D;
@@ -221,6 +227,7 @@ end;
 
 destructor TREST4D.Destroy;
 begin
+  FQuery.DisposeOf;
   FStream.DisposeOf;
   FProcsOnStatusCode.DisposeOf;
 
@@ -301,6 +308,7 @@ begin
                 FOnBeforeRequest();
 
               try
+                ProcessQuery;
                 FREST.Request.Execute;
                 SetResult;
               except
@@ -335,6 +343,7 @@ begin
   Result               := Self;
   FREST.Request.Method := rmGET;
 
+  ProcessQuery;
   Execute;
   ResetREST(ResetConfiguration);
 end;
@@ -413,6 +422,28 @@ begin
   ResetREST(ResetConfiguration);
 end;
 
+procedure TREST4D.ProcessQuery;
+var
+  Item: TPair<String, String>;
+  Idx: Integer;
+begin
+  if FQuery.Count > 0 then
+    FREST.Request.Resource := FREST.Request.Resource + '?'
+  else
+    Exit;
+
+  Idx := 0;
+  for Item in FQuery do
+  begin
+    FREST.Request.Resource := FREST.Request.Resource + Item.Key +'='+ Item.Value;
+
+    if Idx < FQuery.Count then
+      FREST.Request.Resource := FREST.Request.Resource + '&';
+
+    Inc(Idx);
+  end;
+end;
+
 function TREST4D.Put(ResetConfiguration: Boolean): IREST4D;
 begin
   Result               := Self;
@@ -473,9 +504,6 @@ begin
   begin
     FJSONValue  := FREST.Response.JSONValue;
     FJSONString := TJson.Format(FREST.Response.JSONValue);
-
-    if Assigned(FREST.Adapter.Dataset) then
-      FREST.Adapter.UpdateDataSet;
   end;
 
   FStream.Clear;

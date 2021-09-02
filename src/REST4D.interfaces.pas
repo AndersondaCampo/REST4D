@@ -79,6 +79,7 @@ type
     function BaseUrl(const AValue: String): IREST4D;
     function Resource(const AValue: String): IREST4D;
     function AddHeader(const AKey, AValue: String): IREST4D;
+    function AddQuery(const AKey, AValue: String): IREST4D;
     function AddParam(const AKey, AValue: String): IREST4D;
     function ParamOption(const AParamName: String; AOptions: TRESTRequestParameterOptions): IREST4D;
     function AddBody(const AValue: String; const ContentType: String): IREST4D; overload;
