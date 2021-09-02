@@ -1,7 +1,7 @@
 {
 	"name": "REST4D",
 	"description": "",
-	"version": "1.0.0",
+	"version": "v1.4",
 	"homepage": "",
 	"mainsrc": "src/",
 	"projects": [],
