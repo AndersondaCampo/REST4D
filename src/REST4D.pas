@@ -14,11 +14,11 @@ uses
 type
   TREST4D = Class(TInterfacedObject, IREST4D)
   private
-    class var
-    Rest4DAsync : TList<IREST4D>;
-    FAsync      : Boolean;
+  class var
+    Rest4DAsync: TList<IREST4D>;
+    FAsync     : Boolean;
 
-    var
+  var
     { Fields }
     FStatusCode: Integer;
     FJSONValue : TJSONValue;
@@ -29,7 +29,8 @@ type
     FQuery     : TDictionary<String, String>;
 
     { Objects }
-    FProcsOnStatusCode: TDictionary<Integer, TProc<Integer, String>>;
+    FProcsOnStatusCode  : TDictionary<Integer, TProc<Integer, String>>;
+    FProcsOnStatusCodeJV: TDictionary<Integer, TProc<Integer, TJSONValue>>;
 
     { interfaces }
     FREST     : IREST4DObjects;
@@ -39,12 +40,13 @@ type
     FOAuth2   : IOAuth2<IREST4D>;
 
     { Events }
-    FOnAuth               : TProc<String>;
-    FOnAuthRaiseException : TProc<Exception>;
-    FOnBeforeRequest      : TProc;
-    FOnAfterRequest       : TProc;
-    FOnAfterRequestJSON   : TProc<Integer, String>;
-    FOnRaisedException    : TProc<Exception>;
+    FOnAuth                 : TProc<String>;
+    FOnAuthRaiseException   : TProc<Exception>;
+    FOnBeforeRequest        : TProc;
+    FOnAfterRequest         : TProc;
+    FOnAfterRequestJSON     : TProc<Integer, String>;
+    FOnAfterRequestJSONValue: TProc<Integer, TJSONValue>;
+    FOnRaisedException      : TProc<Exception>;
 
     procedure ResetFields;
     procedure SetResult;
@@ -78,7 +80,9 @@ type
     function OnBeforeRequest(AValue: TProc): IREST4D;
     function OnAfterRequest(AValue: TProc): IREST4D; overload;
     function OnAfterRequest(AValue: TProc<Integer, String>): IREST4D; overload;
-    function OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, String>): IREST4D;
+    function OnAfterRequest(AValue: TProc<Integer, TJSONValue>): IREST4D; overload;
+    function OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, String>): IREST4D; overload;
+    function OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, TJSONValue>): IREST4D; overload;
     function OnRaisedException(AValue: TProc<Exception>): IREST4D;
     function StatusCode: Integer;
     function JSONValue: TJSONValue;
@@ -105,7 +109,7 @@ uses
   System.NetEncoding,
   System.Threading,
   IpPeerClient,
-  REST.Json,
+  REST.JSON,
   REST4D.Objects,
   REST4D.Response,
   REST4D.Client,
@@ -167,7 +171,7 @@ end;
 
 function TREST4D.Authenticate: IREST4D;
 begin
- Result := Self;
+  Result := Self;
 
   if FUseOauth2 then
     ExecOAuth2;
@@ -186,7 +190,7 @@ begin
   if AValue <> '' then
   begin
     FToken := AValue;
-    FREST.Request.Params.AddHeader('Authorization', 'Bearer '+ AValue);
+    FREST.Request.Params.AddHeader('Authorization', 'Bearer ' + AValue);
     FREST.Request.Params.ParameterByName('Authorization').Options := [poDoNotEncode];
   end;
 end;
@@ -196,10 +200,11 @@ begin
   { Objects }
   FStream := TMemoryStream.Create;
 
-  FREST              := TREST4DObjects.New;
-  FProcsOnStatusCode := TDictionary <Integer, TProc<Integer, String>>.Create();
-  FUseOauth2         := False;
-  FQuery             := TDictionary<String, String>.Create;
+  FREST                := TREST4DObjects.New;
+  FProcsOnStatusCode   := TDictionary < Integer, TProc < Integer, String >>.Create();
+  FProcsOnStatusCodeJV := TDictionary < Integer, TProc < Integer, TJSONValue >>.Create();
+  FUseOauth2           := False;
+  FQuery               := TDictionary<String, String>.Create;
 
   FIClient   := TClient<IREST4D>.New(Self, FREST.Client);
   FIResponse := TResponse<IREST4D>.New(Self, FREST.Response);
@@ -236,36 +241,36 @@ end;
 
 procedure TREST4D.ExecOAuth2;
 var
-  response: IHTTPResponse;
+  Response: IHTTPResponse;
   Client  : THTTPClient;
   props   : TOAuth2Params;
   source  : TStringStream;
   jo      : TJSONObject;
   jv      : TJSONValue;
 begin
-  props := FOAuth2.Props;
+  props := FOAuth2.props;
 
   jo := TJSONObject.Create;
   try
     jo.AddPair('grant_type', 'client_credentials');
 
-    if Props.ClientID <> '' then
-      jo.AddPair('client_id', Props.ClientID);
+    if props.ClientID <> '' then
+      jo.AddPair('client_id', props.ClientID);
 
-    if Props.ClientSecret <> '' then
-      jo.AddPair('client_secret', Props.ClientSecret);
+    if props.ClientSecret <> '' then
+      jo.AddPair('client_secret', props.ClientSecret);
 
     source := TStringStream.Create(jo.ToJSON);
     Client := THTTPClient.Create;
     try
       Client.ContentType := 'application/json';
       try
-        response := Client.Post(props.AuthorizationEndpoint, source);
+        Response := Client.Post(props.AuthorizationEndpoint, source);
 
-        if response.StatusCode <> 200 then
-          raise Exception.Create('Request error('+ response.statuscode.ToString +') '+ response.ContentAsString());
+        if Response.StatusCode <> 200 then
+          raise Exception.Create('Request error(' + Response.StatusCode.ToString + ') ' + Response.ContentAsString());
 
-        jv := jo.ParseJSONValue(response.ContentAsString());
+        jv := jo.ParseJSONValue(Response.ContentAsString());
         try
           jv.TryGetValue<String>('access_token', FToken);
 
@@ -274,7 +279,7 @@ begin
         end;
 
         if Assigned(FOnAuth) then
-          FOnAuth(response.ContentAsString());
+          FOnAuth(Response.ContentAsString());
       except
         on E: Exception do
           if Assigned(FOnAuthRaiseException) then
@@ -283,8 +288,8 @@ begin
             raise Exception.Create(E.Message);
       end;
     finally
-      if Assigned(response) then
-        response._Release;
+      if Assigned(Response) then
+        Response._Release;
 
       source.DisposeOf;
       Client.DisposeOf;
@@ -298,39 +303,44 @@ procedure TREST4D.Execute;
 var
   LProc: TProc;
 begin
-  LProc :=  procedure
-            var
-              Proc: TProc<Integer, String>;
-            begin
-              ResetFields;
+  LProc :=
+    procedure
+    var
+      Proc: TProc<Integer, String>;
+      ProcJV: TProc<Integer, TJSONValue>;
+    begin
+      ResetFields;
 
-              if Assigned(FOnBeforeRequest) then
-                FOnBeforeRequest();
+      if Assigned(FOnBeforeRequest) then
+        FOnBeforeRequest();
 
-              try
-                ProcessQuery;
-                FREST.Request.Execute;
-                SetResult;
-              except
-                on E: Exception do
-                begin
-                  if Assigned(FOnRaisedException) then
-                  begin
-                    FOnRaisedException(E);
-                      Exit;
-                  end;
-                end;
-              end;
+      try
+        ProcessQuery;
+        FREST.Request.Execute;
+        SetResult;
+      except
+        on E: Exception do
+        begin
+          if Assigned(FOnRaisedException) then
+          begin
+            FOnRaisedException(E);
+            Exit;
+          end;
+        end;
+      end;
 
-              if Assigned(FOnAfterRequest) then
-                FOnAfterRequest();
+      if Assigned(FOnAfterRequest) then
+        FOnAfterRequest();
 
-              if Assigned(FOnAfterRequestJSON) then
-                FOnAfterRequestJSON(FStatusCode, FJSONString);
+      if Assigned(FOnAfterRequestJSON) then
+        FOnAfterRequestJSON(FStatusCode, FJSONString);
 
-              if FProcsOnStatusCode.TryGetValue(FStatusCode, Proc) then
-                Proc(FStatusCode, FJSONString);
-            end;
+      if FProcsOnStatusCode.TryGetValue(FStatusCode, Proc) then
+        Proc(FStatusCode, FJSONString);
+
+      if FProcsOnStatusCodeJV.TryGetValue(FStatusCode, ProcJV) then
+        ProcJV(FStatusCode, FJSONValue);
+    end;
 
   if FAsync then
     TTask.Run(LProc)
@@ -401,6 +411,12 @@ begin
   FOnRaisedException := AValue;
 end;
 
+function TREST4D.OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, TJSONValue>): IREST4D;
+begin
+  Result := Self;
+  FProcsOnStatusCodeJV.Add(ACode, AProc);
+end;
+
 function TREST4D.OnSpecificStatusCode(ACode: Integer; AProc: TProc<Integer, String>): IREST4D;
 begin
   Result := Self;
@@ -425,7 +441,7 @@ end;
 procedure TREST4D.ProcessQuery;
 var
   Item: TPair<String, String>;
-  Idx: Integer;
+  Idx : Integer;
 begin
   if FQuery.Count > 0 then
     FREST.Request.Resource := FREST.Request.Resource + '?'
@@ -435,7 +451,7 @@ begin
   Idx := 0;
   for Item in FQuery do
   begin
-    FREST.Request.Resource := FREST.Request.Resource + Item.Key +'='+ Item.Value;
+    FREST.Request.Resource := FREST.Request.Resource + Item.Key + '=' + Item.Value;
 
     if Idx < FQuery.Count then
       FREST.Request.Resource := FREST.Request.Resource + '&';
@@ -521,10 +537,18 @@ begin
   Result := FJSONString;
 end;
 
+function TREST4D.OnAfterRequest(AValue: TProc<Integer, TJSONValue>): IREST4D;
+begin
+  Result                   := Self;
+  FOnAfterRequestJSONValue := AValue;
+end;
+
 initialization
-  TREST4D.Rest4DAsync := TList<IREST4D>.Create;
+
+TREST4D.Rest4DAsync := TList<IREST4D>.Create;
 
 finalization
-  TREST4D.Rest4DAsync.DisposeOf;
+
+TREST4D.Rest4DAsync.DisposeOf;
 
 end.
